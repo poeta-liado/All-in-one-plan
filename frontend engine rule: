@@ -1,0 +1,2 @@
+if (app.type === "crm") {
+  renderCRM(app.config)
