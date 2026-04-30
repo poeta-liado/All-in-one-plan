@@ -1,0 +1,21 @@
+model User {
+  id        String @id @default(cuid())
+  email     String @unique
+  password  String
+  plan      String @default("free")
+  workspace Workspace?
+}
+
+model Workspace {
+  id     String @id @default(cuid())
+  name   String
+  userId String @unique
+  apps   App[]
+}
+
+model App {
+  id          String @id @default(cuid())
+  name        String
+  type        String
+  config      Json
+  workspaceId String
