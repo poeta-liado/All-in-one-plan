@@ -1,0 +1,30 @@
+import express from "express";
+import cors from "cors";
+import session from "express-session";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+const app = express();
+
+app.use(cors({ origin: true, credentials: true }));
+app.use(express.json());
+app.use(session({
+  secret: "oneapp-secret",
+  resave: false,
+  saveUninitialized: false
+}));
+
+// AUTH
+app.get("/api/auth/me", async (req, res) => {
+  res.json({ user: null });
+});
+
+// APPS
+app.get("/api/apps", async (req, res) => {
+  const apps = await prisma.app.findMany();
+  res.json(apps);
+});
+
+app.listen(3001, () => {
+  console.log("API running on 3001");
+});
