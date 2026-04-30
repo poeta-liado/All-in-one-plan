@@ -1,0 +1,3 @@
+GET /api/crm/tickets
+GET /api/crm/deals
+GET /api/crm/contacts
