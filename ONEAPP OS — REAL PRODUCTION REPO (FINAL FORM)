@@ -1,0 +1,21 @@
+oneapp-os/
+│
+├── apps/
+│   ├── web/                 # FRONTEND (Next.js recommended)
+│   ├── api/                # BACKEND (Express/Fastify)
+│
+├── packages/
+│   ├── ui/                 # shared components
+│   ├── engine/             # app runtime system
+│   ├── config/             # app schemas (CRM, VetBot, etc.)
+│
+├── prisma/
+│   └── schema.prisma
+│
+├── docker/
+│   └── docker-compose.yml
+│
+├── .env
+├── turbo.json
+├── package.json
+└── README.md
