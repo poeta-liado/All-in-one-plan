@@ -1,0 +1,4 @@
+Inside apps/web/app/page.tsx:
+
+Sidebar loads /api/apps
+App loader uses /app/[id]
