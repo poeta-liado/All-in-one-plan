@@ -1,0 +1,2 @@
+POST /api/billing/checkout
+POST /api/billing/webhook
