@@ -303,9 +303,9 @@ select.inp{cursor:pointer}
   </nav>
   <div class="sidebar-footer">
     <div class="nav-item" onclick="go('settings',this)"><span class="nav-icon">⚙</span> Settings</div>
-    <div class="user-row">
-      <div class="avatar">AC</div>
-      <div><div class="user-name">Alex Costa</div><div class="user-role">Sales Director</div></div>
+    <div class="user-row" onclick="toggleLogin()" style="cursor:pointer">
+      <div class="avatar" id="user-avatar">AC</div>
+      <div><div class="user-name" id="user-name">Alex Costa</div><div class="user-role" id="user-role">Sales Director</div></div>
     </div>
   </div>
 </aside>
@@ -674,6 +674,85 @@ const TASKS = [
   {id:6,text:'Chase overdue invoice #INV-2039',done:true,due:'Done',priority:'high',rel:''},
 ];
 
+// Load data (try API first, fallback to localStorage, seed if missing)
+async function loadData() {
+  try {
+    const [leadsRes, tasksRes] = await Promise.all([
+      fetch('/api/leads'),
+      fetch('/api/tasks')
+    ]);
+    if (leadsRes.ok) LEADS.splice(0, LEADS.length, ...(await leadsRes.json()));
+    if (tasksRes.ok) TASKS.splice(0, TASKS.length, ...(await tasksRes.json()));
+    // persist as backup
+    localStorage.setItem('nexus_data', JSON.stringify({leads:LEADS, tasks:TASKS}));
+  } catch (e) {
+    console.warn('Could not load data from API, using local fallback', e);
+    const stored = JSON.parse(localStorage.getItem('nexus_data')||'null');
+    if (stored) {
+      if (stored.leads) LEADS.splice(0, LEADS.length, ...stored.leads);
+      if (stored.tasks) TASKS.splice(0, TASKS.length, ...stored.tasks);
+    } else {
+      // save current seed into localStorage for persistence
+      localStorage.setItem('nexus_data', JSON.stringify({leads:LEADS, tasks:TASKS}));
+    }
+  }
+  updateDashMini(); renderFunnel(); renderActivityFeed(); renderLeadsTable(); renderKanban(); renderTasks();
+}
+
+// API helpers with fallback to localStorage for static hosting
+async function apiPostLead(lead) {
+  try {
+    const res = await fetch('/api/leads', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(lead)});
+    if (res.ok) { const body = await res.json(); localStorage.setItem('nexus_data', JSON.stringify({leads:LEADS, tasks:TASKS})); return body; }
+  } catch (e) {
+    // ignore and fallback
+  }
+  // fallback: create id, add to LEADS and persist locally
+  const id = Date.now();
+  const leadWithId = Object.assign({id}, lead);
+  LEADS.unshift(leadWithId);
+  localStorage.setItem('nexus_data', JSON.stringify({leads:LEADS, tasks:TASKS}));
+  return leadWithId;
+}
+async function apiUpdateLead(id, patch) {
+  try {
+    const res = await fetch('/api/leads/'+id, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)});
+    if (res.ok) { const body = await res.json(); localStorage.setItem('nexus_data', JSON.stringify({leads:LEADS, tasks:TASKS})); return body; }
+  } catch (e) {}
+  // fallback: update local
+  const idx = LEADS.findIndex(l=>Number(l.id)===Number(id));
+  if (idx !== -1) {
+    LEADS[idx] = Object.assign({}, LEADS[idx], patch);
+    localStorage.setItem('nexus_data', JSON.stringify({leads:LEADS, tasks:TASKS}));
+    return LEADS[idx];
+  }
+  return null;
+}
+async function apiPostTask(task) {
+  try {
+    const res = await fetch('/api/tasks', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(task)});
+    if (res.ok) { const body = await res.json(); localStorage.setItem('nexus_data', JSON.stringify({leads:LEADS, tasks:TASKS})); return body; }
+  } catch (e) {}
+  const id = Date.now();
+  const t = Object.assign({id}, task);
+  TASKS.push(t);
+  localStorage.setItem('nexus_data', JSON.stringify({leads:LEADS, tasks:TASKS}));
+  return t;
+}
+async function apiUpdateTask(id, patch) {
+  try {
+    const res = await fetch('/api/tasks/'+id, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)});
+    if (res.ok) { const body = await res.json(); localStorage.setItem('nexus_data', JSON.stringify({leads:LEADS, tasks:TASKS})); return body; }
+  } catch (e) {}
+  const idx = TASKS.findIndex(t=>Number(t.id)===Number(id));
+  if (idx !== -1) {
+    TASKS[idx] = Object.assign({}, TASKS[idx], patch);
+    localStorage.setItem('nexus_data', JSON.stringify({leads:LEADS, tasks:TASKS}));
+    return TASKS[idx];
+  }
+  return null;
+}
+
 const PIPELINE_STAGES = ['New','Contacted','Qualified','Proposal','Won'];
 
 /* ============================================================
@@ -900,9 +979,14 @@ function advanceStatus(id) {
   const stages = ['new','contacted','qualified','proposal','won','lost'];
   const i = stages.indexOf(l.status);
   l.status = stages[Math.min(i+1, stages.length-1)];
-  renderLeadsTable();
-  renderKanban();
-  updateDashMini();
+  // persist
+  apiUpdateLead(id, { status: l.status }).then(() => {
+    renderLeadsTable();
+    renderKanban();
+    updateDashMini();
+  }).catch(() => {
+    renderLeadsTable(); renderKanban(); updateDashMini();
+  });
 }
 
 /* ============================================================
@@ -969,14 +1053,16 @@ function renderTasks() {
 function toggleTask(id) {
   const t = TASKS.find(x=>x.id===id);
   t.done = !t.done;
-  renderTasks();
+  apiUpdateTask(id, { done: t.done }).then(() => renderTasks()).catch(()=>renderTasks());
 }
 
 function promptAddTask() {
   const text = prompt('Task description:');
   if (!text) return;
-  TASKS.push({id:Date.now(),text,done:false,due:'Today',priority:'med',rel:''});
-  renderTasks();
+  apiPostTask({text,done:false,due:'Today',priority:'med',rel:''}).then(t => {
+    if (t) TASKS.push(t);
+    renderTasks();
+  }).catch(()=>{ TASKS.push({id:Date.now(),text,done:false,due:'Today',priority:'med',rel:''}); renderTasks(); });
 }
 
 /* ============================================================
@@ -1162,17 +1248,21 @@ function saveLead() {
   const value = parseInt(document.getElementById('m-value').value)||10000;
   if (!name || !email) { alert('Please fill in name and email.'); return; }
   const initials = name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
-  LEADS.unshift({id:Date.now(),name,email,company:company||'—',industry,status:'new',value,initials,color:'#EEF2FF',tc:'#4338CA'});
-  closeModal();
+  const newLead = {name,email,company:company||'—',industry,status:'new',value,initials,color:'#EEF2FF',tc:'#4338CA'};
+  apiPostLead(newLead).then(lead => {
+    if (lead) LEADS.unshift(lead);
+    else LEADS.unshift(Object.assign({id:Date.now()}, newLead));
+    closeModal();
+    renderLeadsTable(); renderKanban(); updateDashMini(); renderFunnel();
+  }).catch(()=>{
+    LEADS.unshift(Object.assign({id:Date.now()}, newLead));
+    closeModal(); renderLeadsTable(); renderKanban(); updateDashMini(); renderFunnel();
+  });
   document.getElementById('m-name').value='';
   document.getElementById('m-email').value='';
   document.getElementById('m-company').value='';
   document.getElementById('m-value').value='';
-  renderLeadsTable();
-  renderKanban();
-  updateDashMini();
-  renderFunnel();
-  renderTasks();
+  // render will be handled after load or individual ops
 }
 
 /* ============================================================
@@ -1201,12 +1291,37 @@ function go(page, el) {
    INIT
    ============================================================ */
 window.addEventListener('DOMContentLoaded', () => {
-  updateDashMini();
-  renderFunnel();
-  renderActivityFeed();
+  // load data from server and initialize UI
+  loadData();
   setTimeout(initRevenueChart, 100);
   scoreRisk();
+  // initialize simple local auth
+  const user = JSON.parse(localStorage.getItem('nexus_user')||'null');
+  if (user) {
+    document.getElementById('user-name').textContent = user.name || 'User';
+    document.getElementById('user-avatar').textContent = (user.name||'U').split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase();
+    if (user.role) document.getElementById('user-role').textContent = user.role;
+  }
 });
+
+function toggleLogin() {
+  const cur = JSON.parse(localStorage.getItem('nexus_user')||'null');
+  if (cur) {
+    localStorage.removeItem('nexus_user');
+    document.getElementById('user-name').textContent = 'Sign in';
+    document.getElementById('user-avatar').textContent = 'SI';
+    document.getElementById('user-role').textContent = '';
+    return;
+  }
+  const name = prompt('Enter your name to sign in (mock):');
+  if (!name) return;
+  const role = prompt('Role (optional):')||'';
+  const user = { name, role };
+  localStorage.setItem('nexus_user', JSON.stringify(user));
+  document.getElementById('user-name').textContent = name;
+  document.getElementById('user-avatar').textContent = name.split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase();
+  document.getElementById('user-role').textContent = role;
+}
 </script>
 </body>
 </html>

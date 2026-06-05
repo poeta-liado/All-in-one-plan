@@ -1,0 +1,19 @@
+{
+  "leads": [
+    {"id":1,"name":"Marta Ros","email":"marta@innova.es","company":"Innova SL","industry":"Technology","status":"qualified","value":85000,"initials":"MR","color":"#EEF2FF","tc":"#4338CA"},
+    {"id":2,"name":"Joan Puig","email":"joan@tibidabo.tech","company":"Tibidabo Tech","industry":"Technology","status":"contacted","value":42000,"initials":"JP","color":"#FEF3C7","tc":"#92400E"},
+    {"id":3,"name":"Sara Gil","email":"sara@graciafoods.com","company":"Gracia Foods","industry":"Retail","status":"proposal","value":28000,"initials":"SG","color":"#DCFCE7","tc":"#166534"},
+    {"id":4,"name":"Lluc Mas","email":"lluc@eixample.es","company":"Eixample Corp","industry":"Construction","status":"won","value":95000,"initials":"LM","color":"#FEE2E2","tc":"#991B1B"},
+    {"id":5,"name":"Carla Vidal","email":"carla@poblenoulabs.com","company":"Poblenou Labs","industry":"Healthcare","status":"new","value":67000,"initials":"CV","color":"#EDE9FE","tc":"#5B21B6"},
+    {"id":6,"name":"Oriol Ferrer","email":"oriol@barnaretail.com","company":"Barna Retail","industry":"Finance","status":"contacted","value":38000,"initials":"OF","color":"#ECFDF5","tc":"#065F46"},
+    {"id":7,"name":"Neus Font","email":"neus@sagrada.io","company":"Sagrada Data","industry":"Legal","status":"lost","value":22000,"initials":"NF","color":"#FEF2F2","tc":"#991B1B"}
+  ],
+  "tasks": [
+    {"id":1,"text":"Follow up with Innova SL re: proposal deadline","done":false,"due":"Today 10:00","priority":"high","rel":"Marta Ros"},
+    {"id":2,"text":"Send contract draft to Eixample Corp","done":false,"due":"Today 11:30","priority":"high","rel":"Lluc Mas"},
+    {"id":3,"text":"Update CRM with call notes from Tibidabo","done":true,"due":"09:00","priority":"med","rel":"Joan Puig"},
+    {"id":4,"text":"Review Q2 pipeline risk report","done":false,"due":"Today 14:00","priority":"med","rel":""},
+    {"id":5,"text":"Schedule demo for Poblenou Labs","done":false,"due":"Tomorrow","priority":"low","rel":"Carla Vidal"},
+    {"id":6,"text":"Chase overdue invoice #INV-2039","done":true,"due":"Done","priority":"high","rel":""}
+  ]
+}
